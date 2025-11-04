@@ -1,4 +1,4 @@
-# Wooper Bot
+# Discord Bot
 
 A Discord bot built in Go that sends random images from organized local directories.
 

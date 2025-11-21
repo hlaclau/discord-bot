@@ -145,70 +145,7 @@ The bot dynamically discovers commands from the database, so new entries are ava
 
 ### Installation
 
-#### Option 1: Docker Deployment (Recommended for Production)
-
-1. **Clone the repository**
-   ```bash
-   git clone git@github.com:hlaclau/wooper-discord-bot.git
-   cd wooper-bot
-   ```
-
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your Discord bot token and database connection string
-   ```
-
-3. **Run with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **View logs**
-   ```bash
-   docker-compose logs -f wooper-bot
-   ```
-
-#### Docker Deployment with GitHub Actions + Dokploy (Recommended)
-
-This approach uses GitHub Actions to build Docker images and Dokploy to deploy them, which is more efficient:
-
-1. **Push your code to GitHub** (already done!)
-
-2. **GitHub Actions will automatically:**
-   - Build Docker images on every push to `main` or `tests/docker` branches
-   - Push images to GitHub Container Registry (ghcr.io)
-   - Support multi-architecture builds (AMD64 + ARM64)
-
-3. **In Dokploy dashboard:**
-   - Create a new project
-   - Choose "Docker Image" as source type (not Git)
-   - Set image name: `ghcr.io/yourusername/wooper-bot:latest`
-   - Or use specific tags like `ghcr.io/yourusername/wooper-bot:main`
-
-4. **Environment Variables in Dokploy:**
-   - `DISCORD_BOT_TOKEN`: Your Discord bot token
-   - `DATABASE_CONNECTION`: PostgreSQL connection string (e.g., `postgres://user:password@host:port/database`)
-   - `LOG_LEVEL`: Optional, defaults to `info`
-
-5. **Deploy:**
-   - Dokploy will pull the pre-built image from GitHub Container Registry
-   - Much faster deployment since no building happens on your VPS
-   - The bot will be available and running on your VPS
-
-6. **Updating Images:**
-   - Push changes to your repository
-   - GitHub Actions builds and pushes new image automatically
-   - Dokploy can be configured to auto-update or you can manually trigger updates
-
-**Note:** The first time you use GitHub Container Registry, you may need to:
-- Go to your repository's "Packages" section on GitHub
-- Make the package public (or configure access for your VPS)
-- The image will be available at `ghcr.io/yourusername/wooper-bot:latest`
-
-#### Alternative: Direct Docker Build in Dokploy
-
-If you prefer Dokploy to build the image directly:
+#### Option 1: Docker Deployment with Dokploy (Recommended)
 
 1. **In Dokploy dashboard:**
    - Create a new project
@@ -222,8 +159,12 @@ If you prefer Dokploy to build the image directly:
    - `LOG_LEVEL`: Optional, defaults to `info`
 
 3. **Deploy:**
-   - Dokploy will build and deploy your container
+   - Dokploy will build and deploy your container from the Dockerfile
    - The bot will be available and running on your VPS
+
+4. **Updating:**
+   - Push changes to your repository
+   - Dokploy can be configured to auto-rebuild or you can manually trigger builds
 
 #### Option 2: Local Development
 

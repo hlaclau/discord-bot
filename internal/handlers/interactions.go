@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -14,20 +13,20 @@ import (
 )
 
 type InteractionHandler struct {
-	ImageService *services.ImageService
+	ImageService services.ContentService
 }
 
-func NewInteractionHandler(imageService *services.ImageService) *InteractionHandler {
+func NewInteractionHandler(imageService services.ContentService) *InteractionHandler {
 	return &InteractionHandler{ImageService: imageService}
 }
 
 func (h *InteractionHandler) OnInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.ApplicationCommandData().Name == "image" {
-		h.handleImageCommand(s, i)
+	if i.ApplicationCommandData().Name == "command" {
+		h.handleCommand(s, i)
 	}
 }
 
-func (h *InteractionHandler) handleImageCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h *InteractionHandler) handleCommand(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	startTime := time.Now()
 
 	// Get the category from the command options
@@ -38,7 +37,7 @@ func (h *InteractionHandler) handleImageCommand(s *discordgo.Session, i *discord
 
 	// Log the interaction
 	logger.Logger.Info("Slash command received",
-		zap.String("command", "image"),
+		zap.String("command", "command"),
 		zap.String("category", category),
 		zap.String("user", i.Member.User.Username),
 		zap.String("user_id", i.Member.User.ID),
@@ -65,75 +64,41 @@ func (h *InteractionHandler) handleImageCommand(s *discordgo.Session, i *discord
 		return
 	}
 
-	// Get random image
-	imagePath := h.ImageService.GetRandomImage(category)
-	if imagePath == "" {
-		logger.Logger.Warn("No images available for category",
-			zap.String("category", category),
+	// Get random content
+	content := h.ImageService.GetRandomContent(category)
+	if content == "" {
+		logger.Logger.Warn("No content available for command",
+			zap.String("command", category),
 			zap.String("user", i.Member.User.Username))
 
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: fmt.Sprintf("No %s images available", category),
+				Content: fmt.Sprintf("No content available for `%s`", category),
 			},
 		})
 		return
 	}
 
-	// Respond with "thinking" first
+	// Send the content
 	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-	})
-	if err != nil {
-		logger.Logger.Error("Failed to defer interaction response", zap.Error(err))
-		return
-	}
-
-	// Load and send the image
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	reader, fileName, err := h.ImageService.GetImageFile(ctx, imagePath)
-	if err != nil {
-		logger.Logger.Error("Failed to load image file",
-			zap.String("category", category),
-			zap.String("image_path", imagePath),
-			zap.String("user", i.Member.User.Username),
-			zap.Error(err))
-
-		s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Failed to load %s: %v", category, err),
-		})
-		return
-	}
-	defer reader.Close()
-
-	// Send the image as a follow-up
-	_, err = s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-		Files: []*discordgo.File{{
-			Name:   fileName,
-			Reader: reader,
-		}},
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: content,
+		},
 	})
 
 	duration := time.Since(startTime)
 
 	if err != nil {
-		logger.Logger.Error("Failed to send image",
-			zap.String("category", category),
-			zap.String("filename", fileName),
+		logger.Logger.Error("Failed to send content",
+			zap.String("command", category),
 			zap.String("user", i.Member.User.Username),
 			zap.Duration("duration", duration),
 			zap.Error(err))
-
-		s.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
-			Content: fmt.Sprintf("Failed to send %s: %v", category, err),
-		})
 	} else {
-		logger.Logger.Info("Image sent successfully via slash command",
-			zap.String("category", category),
-			zap.String("filename", fileName),
+		logger.Logger.Info("Content sent successfully via slash command",
+			zap.String("command", category),
 			zap.String("user", i.Member.User.Username),
 			zap.String("user_id", i.Member.User.ID),
 			zap.String("channel_id", i.ChannelID),

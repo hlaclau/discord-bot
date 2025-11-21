@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	DiscordBotToken string
+	DiscordBotToken    string
+	DatabaseConnection string
 }
 
 // Load reads configuration from environment variables and validates required fields.
@@ -21,5 +22,14 @@ func Load() (Config, error) {
 	if token == "" {
 		return Config{}, errors.New("missing DISCORD_BOT_TOKEN env var")
 	}
-	return Config{DiscordBotToken: token}, nil
+
+	dbConn := os.Getenv("DATABASE_CONNECTION")
+	if dbConn == "" {
+		return Config{}, errors.New("missing DATABASE_CONNECTION env var")
+	}
+
+	return Config{
+		DiscordBotToken:    token,
+		DatabaseConnection: dbConn,
+	}, nil
 }

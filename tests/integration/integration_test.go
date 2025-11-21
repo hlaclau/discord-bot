@@ -1,21 +1,22 @@
 package integration
 
 import (
-	"context"
+	"database/sql"
 	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"wooper-bot/internal/logger"
 	"wooper-bot/internal/services"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // TestIntegration tests the overall flow of the wooper-bot application.
 func TestIntegration(t *testing.T) {
-	// Skip if running in CI or if Discord token is not available
-	if os.Getenv("CI") != "" || os.Getenv("DISCORD_BOT_TOKEN") == "" {
-		t.Skip("Skipping integration test - no Discord token or running in CI")
+	// Skip if running in CI or if database connection is not available
+	dbConn := os.Getenv("DATABASE_CONNECTION")
+	if os.Getenv("CI") != "" || dbConn == "" {
+		t.Skip("Skipping integration test - no database connection or running in CI")
 	}
 
 	// Initialize logger for integration tests
@@ -25,69 +26,32 @@ func TestIntegration(t *testing.T) {
 	}
 	defer logger.Close()
 
-	// Create test image directory
-	tempDir := t.TempDir()
-	setupTestImages(t, tempDir)
-
-	// Test image service initialization
-	imageService, err := services.NewImageService(tempDir)
+	// Test database service initialization
+	dbService, err := services.NewDatabaseService(dbConn)
 	if err != nil {
-		t.Fatalf("Failed to create image service: %v", err)
+		t.Fatalf("Failed to create database service: %v", err)
+	}
+	defer dbService.Close()
+
+	// Test that commands can be retrieved
+	commands := dbService.GetAvailableCategories()
+	if len(commands) == 0 {
+		t.Log("No commands found in database - this is okay if database is empty")
 	}
 
-	// Test that categories are loaded
-	categories := imageService.GetAvailableCategories()
-	if len(categories) == 0 {
-		t.Errorf("Expected categories to be loaded but got none")
-	}
-
-	// Test getting random images
-	for _, category := range categories {
-		imagePath := imageService.GetRandomImage(category)
-		if imagePath == "" {
-			t.Errorf("Expected image path for category %s but got empty", category)
+	// Test getting random content for existing commands
+	for _, command := range commands {
+		content := dbService.GetRandomContent(command)
+		if content == "" {
+			t.Errorf("Expected content for command %s but got empty", command)
 		}
 	}
 
-	// Test image file operations
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	for _, category := range categories {
-		imagePath := imageService.GetRandomImage(category)
-		if imagePath != "" {
-			reader, filename, err := imageService.GetImageFile(ctx, imagePath)
-			if err != nil {
-				t.Errorf("Failed to get image file for category %s: %v", category, err)
-			} else {
-				reader.Close()
-				if filename == "" {
-					t.Errorf("Expected filename but got empty for category %s", category)
-				}
-			}
-		}
-	}
-}
-
-// setupTestImages creates test image files in the given directory
-func setupTestImages(t *testing.T, baseDir string) {
-	categories := []string{"wooper", "cats", "dogs"}
-
-	for _, category := range categories {
-		categoryDir := filepath.Join(baseDir, category)
-		err := os.MkdirAll(categoryDir, 0755)
-		if err != nil {
-			t.Fatalf("Failed to create test directory: %v", err)
-		}
-
-		// Create test image files
-		for i := 1; i <= 3; i++ {
-			filename := filepath.Join(categoryDir, category+"_"+string(rune('0'+i))+".jpg")
-			file, err := os.Create(filename)
-			if err != nil {
-				t.Fatalf("Failed to create test file: %v", err)
-			}
-			file.Close()
+	// Test content count
+	for _, command := range commands {
+		count := dbService.GetContentCount(command)
+		if count <= 0 {
+			t.Errorf("Expected positive count for command %s but got %d", command, count)
 		}
 	}
 }
@@ -107,5 +71,6 @@ func TestMain(t *testing.T) {
 
 	// Test that we can import and use the packages
 	// This is a basic smoke test
-	_ = services.ImageService{}
+	_ = services.DatabaseService{}
+	_ = sql.DB{}
 }

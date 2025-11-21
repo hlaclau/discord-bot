@@ -16,7 +16,8 @@ func TestLoad(t *testing.T) {
 		{
 			name: "valid token",
 			envVars: map[string]string{
-				"DISCORD_BOT_TOKEN": "test-token-123",
+				"DISCORD_BOT_TOKEN":   "test-token-123",
+				"DATABASE_CONNECTION": "postgres://user:pass@localhost:5432/testdb",
 			},
 			expectedError: false,
 			expectedToken: "test-token-123",
@@ -72,6 +73,7 @@ func TestLoad(t *testing.T) {
 func TestLoadWithEnvFile(t *testing.T) {
 	os.Clearenv()
 	os.Setenv("DISCORD_BOT_TOKEN", "test-token-from-env")
+	os.Setenv("DATABASE_CONNECTION", "postgres://user:pass@localhost:5432/testdb")
 	defer os.Clearenv()
 
 	config, err := Load()

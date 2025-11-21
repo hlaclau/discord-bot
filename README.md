@@ -1,14 +1,14 @@
 # Discord Bot
 
-A Discord bot built in Go that sends random images from organized local directories.
+A Discord bot built in Go that returns text content from a PostgreSQL database based on registered commands.
 
 ## Features
 
-- **Flexible Image Commands**: Create commands for any image category by organizing images in folders
-- **Slash Commands with Autocomplete**: Modern Discord slash commands with category autocomplete
-- **Local Image Storage**: Fast, reliable image serving from local directories
-- **Dynamic Command Discovery**: Automatically creates commands based on available image folders
-- **Help System**: Built-in help command to list available image categories
+- **Database-Driven Commands**: Store and retrieve text content from PostgreSQL database
+- **Slash Commands with Autocomplete**: Modern Discord slash commands with command autocomplete
+- **PostgreSQL Integration**: Fast, reliable content retrieval from your own PostgreSQL database
+- **Dynamic Command Discovery**: Automatically discovers commands from database entries
+- **Help System**: Built-in help command to list available commands and entry counts
 - **Comprehensive Logging**: Structured logging with Zap for command tracking, user metrics, and performance monitoring
 - **Clean Architecture**: Modular design with separate packages for config, services, handlers, and bot logic
 - **Environment Configuration**: Support for `.env` files and environment variables
@@ -17,43 +17,84 @@ A Discord bot built in Go that sends random images from organized local director
 ## Commands
 
 ### Slash Commands (Recommended)
-- `/image category:<category>` - Sends a random image from the specified category with autocomplete
-  - Example: `/image category:wooper`
-  - The category parameter will show available options with autocomplete
+- `/command command:<command>` - Returns random text content for the specified command with autocomplete
+  - Example: `/command command:wooper`
+  - The command parameter will show available options with autocomplete
 
 ### Legacy Text Commands
-- `!<category>` - Sends a random image from the specified category (e.g., `!wooper`, `!cats`, `!dogs`)
-- `!help` or `!list` - Shows all available image categories and image counts
+- `!<command>` - Returns random text content for the specified command (e.g., `!wooper`, `!cats`, `!dogs`)
+- `!help` or `!list` - Shows all available commands and entry counts
 
-## Image Organization
+## Database Setup
 
-Organize your images in the `img/` directory structure:
+The bot uses a PostgreSQL database to store commands and their associated content. The database table is automatically created on first run.
 
+### Database Schema
+
+The bot automatically creates a `commands` table with the following structure:
+
+```sql
+CREATE TABLE commands (
+    id SERIAL PRIMARY KEY,
+    command VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_command ON commands(command);
 ```
-img/
-├── wooper/          # Images for !wooper command
-│   ├── wooper1.jpg
-│   ├── wooper2.jpg
-│   └── Wooper_anime.webp
-├── cats/            # Images for !cats command
-│   ├── cat1.jpg
-│   └── cat2.png
-└── dogs/            # Images for !dogs command
-    ├── dog1.jpg
-    └── dog2.gif
+
+### Adding Commands and Content
+
+To add a new command with content, insert a row into the `commands` table:
+
+```sql
+INSERT INTO commands (command, content) VALUES ('wooper', 'This is some wooper content!');
+INSERT INTO commands (command, content) VALUES ('wooper', 'Another wooper message');
+INSERT INTO commands (command, content) VALUES ('cats', 'Meow meow!');
 ```
 
-Supported image formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`
+**Notes:**
+- Multiple entries with the same `command` value are allowed - the bot will randomly select one
+- The `content` field can contain any text (Discord markdown is supported)
+- Commands are case-sensitive and should match exactly what users type (e.g., `!wooper` matches command `wooper`)
+
+### Example Database Setup
+
+```sql
+-- Create database (if not exists)
+CREATE DATABASE wooper_bot;
+
+-- Connect to the database
+\c wooper_bot
+
+-- The bot will create the table automatically, or you can create it manually:
+CREATE TABLE IF NOT EXISTS commands (
+    id SERIAL PRIMARY KEY,
+    command VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_command ON commands(command);
+
+-- Add some example commands
+INSERT INTO commands (command, content) VALUES
+    ('wooper', '🐸 Wooper is the best!'),
+    ('wooper', 'Wooper wooper wooper!'),
+    ('help', 'Use !help to see available commands'),
+    ('cats', '🐱 Cats are cute!');
+```
 
 ## Logging
 
 The bot includes comprehensive structured logging using Zap. Logs include:
 
 - **Command Tracking**: Every command execution with user info, timing, and results
-- **Performance Metrics**: Response times for image operations
+- **Performance Metrics**: Response times for database queries and content retrieval
 - **User Analytics**: Who is using which commands and when
 - **Error Tracking**: Detailed error information for debugging
-- **System Events**: Bot startup, image service initialization, etc.
+- **System Events**: Bot startup, database service initialization, etc.
 
 ### Log Levels
 
@@ -79,16 +120,19 @@ Set the log level using the `LOG_LEVEL` environment variable:
 }
 ```
 
-### Adding New Image Categories
+### Adding New Commands
 
-To add a new image category (e.g., `dogs`):
+To add a new command (e.g., `dogs`):
 
-1. Create a new directory: `mkdir img/dogs`
-2. Add your images to the directory: `cp your-dog-images/* img/dogs/`
-3. Restart the bot
+1. Connect to your PostgreSQL database
+2. Insert content for the command:
+   ```sql
+   INSERT INTO commands (command, content) VALUES ('dogs', 'Woof woof!');
+   ```
+3. The bot will automatically detect the new command (no restart needed for new entries)
 4. Use the new command: `!dogs`
 
-The bot will automatically detect the new category and make it available as a command.
+The bot dynamically discovers commands from the database, so new entries are available immediately.
 
 ## Setup
 
@@ -97,6 +141,7 @@ The bot will automatically detect the new category and make it available as a co
 - Go 1.19 or later (for local development)
 - Docker and Docker Compose (for containerized deployment)
 - A Discord bot token
+- PostgreSQL database (hosted on your VPS or elsewhere)
 
 ### Installation
 
@@ -111,7 +156,7 @@ The bot will automatically detect the new category and make it available as a co
 2. **Configure environment**
    ```bash
    cp .env.example .env
-   # Edit .env and add your Discord bot token
+   # Edit .env and add your Discord bot token and database connection string
    ```
 
 3. **Run with Docker Compose**
@@ -143,6 +188,7 @@ This approach uses GitHub Actions to build Docker images and Dokploy to deploy t
 
 4. **Environment Variables in Dokploy:**
    - `DISCORD_BOT_TOKEN`: Your Discord bot token
+   - `DATABASE_CONNECTION`: PostgreSQL connection string (e.g., `postgres://user:password@host:port/database`)
    - `LOG_LEVEL`: Optional, defaults to `info`
 
 5. **Deploy:**
@@ -172,6 +218,7 @@ If you prefer Dokploy to build the image directly:
 
 2. **Environment Variables in Dokploy:**
    - `DISCORD_BOT_TOKEN`: Your Discord bot token
+   - `DATABASE_CONNECTION`: PostgreSQL connection string (e.g., `postgres://user:password@host:port/database`)
    - `LOG_LEVEL`: Optional, defaults to `info`
 
 3. **Deploy:**
@@ -196,12 +243,13 @@ If you prefer Dokploy to build the image directly:
    **Option A: Using .env file (recommended)**
    ```bash
    cp .env.example .env
-   # Edit .env and add your Discord bot token
+   # Edit .env and add your Discord bot token and database connection string
    ```
 
    **Option B: Using environment variables**
    ```bash
    export DISCORD_BOT_TOKEN=your_bot_token_here
+   export DATABASE_CONNECTION=postgres://user:password@host:port/database
    ```
 
 4. **Run the bot**
@@ -236,12 +284,6 @@ wooper-bot/
 ├── go.sum               # Go module checksums
 ├── main.go              # Application entry point
 ├── README.md            # This file
-├── img/                 # Image directories
-│   ├── wooper/          # Wooper images
-│   │   ├── wooper1.jpg
-│   │   └── wooper2.jpg
-│   └── cats/            # Cat images (example)
-│       └── README.txt
 ├── internal/            # Internal packages
 │   ├── bot/             # Discord bot wrapper
 │   │   ├── bot.go
@@ -253,13 +295,15 @@ wooper-bot/
 │   │   ├── messages.go
 │   │   ├── messages_test.go
 │   │   ├── interactions.go
+│   │   ├── mock_service.go
 │   │   └── interactions_test.go
 │   ├── logger/          # Structured logging with Zap
 │   │   ├── logger.go
 │   │   └── logger_test.go
 │   └── services/        # Business logic services
-│       ├── image.go
-│       └── image_test.go
+│       ├── database.go  # PostgreSQL database service
+│       ├── service.go   # Content service interface
+│       └── image.go     # Legacy image service (deprecated)
 └── tests/               # Test files
     └── integration/     # Integration tests
         └── integration_test.go
@@ -271,7 +315,9 @@ The bot follows a clean, layered architecture:
 
 - **`internal/config`**: Environment variable loading with `.env` support
 - **`internal/logger`**: Structured logging configuration and initialization
-- **`internal/services`**: Business logic for local image management and category discovery
+- **`internal/services`**: Business logic for database content management and command discovery
+  - **`database.go`**: PostgreSQL database service for storing and retrieving command content
+  - **`service.go`**: Content service interface for abstraction
 - **`internal/handlers`**: Discord message event processing and slash command interactions with dynamic command support and comprehensive logging
 - **`internal/bot`**: Discord session management and lifecycle
 - **`main.go`**: Dependency injection and application startup
@@ -281,6 +327,7 @@ The bot follows a clean, layered architecture:
 - **discordgo**: Discord API client for Go
 - **godotenv**: Environment variable loading from `.env` files
 - **zap**: High-performance structured logging
+- **pgx/v5**: PostgreSQL driver for Go
 
 ## Development
 
@@ -334,19 +381,35 @@ The project follows Go best practices:
 1. Ensure the bot has "Message Content Intent" enabled in Discord Developer Portal
 2. Check that the bot has "Send Messages" permission in the server
 3. Verify the bot token is correct in your `.env` file
-4. Use `!help` to see available image categories
+4. Verify the database connection string is correct in your `.env` file
+5. Use `!help` to see available commands
 
-### No images found for a category
+### No content found for a command
 
-- Check that the category folder exists in the `img/` directory
-- Ensure the folder contains supported image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`)
-- Verify file permissions allow the bot to read the images
+- Check that the command exists in the database:
+  ```sql
+  SELECT * FROM commands WHERE command = 'yourcommand';
+  ```
+- Verify the database connection is working
+- Check database logs for connection errors
+- Ensure the bot has read permissions on the database
 
-### Bot shows "no image categories available"
+### Bot shows "no commands available"
 
-- Ensure the `img/` directory exists and contains at least one subdirectory with images
-- Check that image files have supported extensions
-- Verify the bot has read permissions for the `img/` directory
+- Verify the database connection string is correct
+- Check that the `commands` table exists in your database
+- Ensure there are entries in the `commands` table:
+  ```sql
+  SELECT COUNT(*) FROM commands;
+  ```
+- Check bot logs for database connection errors
+
+### Database connection errors
+
+- Verify your PostgreSQL database is running and accessible
+- Check that the connection string format is correct: `postgres://user:password@host:port/database`
+- Ensure the database user has permissions to create tables and read/write data
+- Check firewall rules if connecting to a remote database
 
 ## License
 

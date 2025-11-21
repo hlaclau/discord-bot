@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -14,10 +13,10 @@ import (
 )
 
 type MessageHandler struct {
-	ImageService *services.ImageService
+	ImageService services.ContentService
 }
 
-func NewMessageHandler(imageService *services.ImageService) *MessageHandler {
+func NewMessageHandler(imageService services.ContentService) *MessageHandler {
 	return &MessageHandler{ImageService: imageService}
 }
 
@@ -52,49 +51,28 @@ func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 		if h.ImageService.HasCategory(category) {
 			startTime := time.Now()
 
-			imagePath := h.ImageService.GetRandomImage(category)
-			if imagePath == "" {
-				logger.Logger.Warn("No images available for category",
-					zap.String("category", category),
+			content := h.ImageService.GetRandomContent(category)
+			if content == "" {
+				logger.Logger.Warn("No content available for command",
+					zap.String("command", category),
 					zap.String("user", m.Author.Username))
-				_, _ = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("no %s images available", category))
+				_, _ = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("no content available for `!%s`", category))
 				return
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-
-			reader, fileName, err := h.ImageService.GetImageFile(ctx, imagePath)
-			if err != nil {
-				logger.Logger.Error("Failed to load image file",
-					zap.String("category", category),
-					zap.String("image_path", imagePath),
-					zap.String("user", m.Author.Username),
-					zap.Error(err))
-				_, _ = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("failed to load %s: %v", category, err))
-				return
-			}
-			defer reader.Close()
-
-			_, err = s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{Files: []*discordgo.File{{
-				Name:   fileName,
-				Reader: reader,
-			}}})
-
+			_, err := s.ChannelMessageSend(m.ChannelID, content)
 			duration := time.Since(startTime)
 
 			if err != nil {
-				logger.Logger.Error("Failed to send image",
-					zap.String("category", category),
-					zap.String("filename", fileName),
+				logger.Logger.Error("Failed to send content",
+					zap.String("command", category),
 					zap.String("user", m.Author.Username),
 					zap.Duration("duration", duration),
 					zap.Error(err))
-				_, _ = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("failed to send %s: %v", category, err))
+				_, _ = s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("failed to send content for `!%s`: %v", category, err))
 			} else {
-				logger.Logger.Info("Image sent successfully",
-					zap.String("category", category),
-					zap.String("filename", fileName),
+				logger.Logger.Info("Content sent successfully",
+					zap.String("command", category),
 					zap.String("user", m.Author.Username),
 					zap.String("user_id", m.Author.ID),
 					zap.String("channel_id", m.ChannelID),
@@ -110,14 +88,14 @@ func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 			if len(categories) == 0 {
 				logger.Logger.Warn("No categories available for help",
 					zap.String("user", m.Author.Username))
-				_, _ = s.ChannelMessageSend(m.ChannelID, "no image categories available")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "no commands available")
 				return
 			}
 
-			message := "Available image categories:\n"
+			message := "Available commands:\n"
 			for _, cat := range categories {
-				count := h.ImageService.GetImageCount(cat)
-				message += fmt.Sprintf("• `!%s` (%d images)\n", cat, count)
+				count := h.ImageService.GetContentCount(cat)
+				message += fmt.Sprintf("• `!%s` (%d entries)\n", cat, count)
 			}
 
 			logger.Logger.Info("Help response sent",

@@ -16,10 +16,10 @@ import (
 	"go.uber.org/zap"
 )
 
-func buildCategoryChoices(imageService *services.ImageService) []*discordgo.ApplicationCommandOptionChoice {
-	categories := imageService.GetAvailableCategories()
-	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(categories))
+func buildCategoryChoices(contentService services.ContentService) []*discordgo.ApplicationCommandOptionChoice {
+	categories := contentService.GetAvailableCategories()
 
+	choices := make([]*discordgo.ApplicationCommandOptionChoice, len(categories))
 	for i, category := range categories {
 		choices[i] = &discordgo.ApplicationCommandOptionChoice{
 			Name:  category,
@@ -44,13 +44,14 @@ func main() {
 		logger.Logger.Fatal("config error", zap.Error(err))
 	}
 
-	imageService, err := services.NewImageService("img")
+	databaseService, err := services.NewDatabaseService(cfg.DatabaseConnection)
 	if err != nil {
-		logger.Logger.Fatal("image service error", zap.Error(err))
+		logger.Logger.Fatal("database service error", zap.Error(err))
 	}
+	defer databaseService.Close()
 
-	messageHandler := handlers.NewMessageHandler(imageService)
-	interactionHandler := handlers.NewInteractionHandler(imageService)
+	messageHandler := handlers.NewMessageHandler(databaseService)
+	interactionHandler := handlers.NewInteractionHandler(databaseService)
 
 	b, err := bot.New(cfg.DiscordBotToken)
 	if err != nil {
@@ -62,15 +63,15 @@ func main() {
 	// Register slash commands
 	commands := []*discordgo.ApplicationCommand{
 		{
-			Name:        "image",
-			Description: "Get a random image from a category",
+			Name:        "command",
+			Description: "Get content from a registered command",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "category",
-					Description: "Image category to get a random image from",
+					Name:        "command",
+					Description: "Command to get content from",
 					Required:    true,
-					Choices:     buildCategoryChoices(imageService),
+					Choices:     buildCategoryChoices(databaseService),
 				},
 			},
 		},

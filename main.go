@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"wooper-bot/internal/bot"
 	"wooper-bot/internal/config"
@@ -79,10 +83,80 @@ func main() {
 
 	logger.Logger.Info("Bot initialized successfully")
 
+	// Start health check HTTP server
+	healthPort := os.Getenv("HEALTH_PORT")
+	if healthPort == "" {
+		healthPort = "8089"
+	}
+
+	healthMux := http.NewServeMux()
+	healthMux.HandleFunc("/health", healthHandler(databaseService))
+
+	healthServer := &http.Server{
+		Addr:         ":" + healthPort,
+		Handler:      healthMux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
+
+	// Start health server in a goroutine
+	go func() {
+		logger.Logger.Info("Starting health check server", zap.String("port", healthPort))
+		if err := healthServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Logger.Fatal("health server error", zap.Error(err))
+		}
+	}()
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	if err := b.StartWithCommands(ctx, commands); err != nil {
-		logger.Logger.Fatal("run error", zap.Error(err))
+	// Start bot in a goroutine
+	go func() {
+		if err := b.StartWithCommands(ctx, commands); err != nil {
+			logger.Logger.Fatal("run error", zap.Error(err))
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-ctx.Done()
+	logger.Logger.Info("Shutting down...")
+
+	// Gracefully shutdown health server
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := healthServer.Shutdown(shutdownCtx); err != nil {
+		logger.Logger.Error("Error shutting down health server", zap.Error(err))
+	}
+}
+
+// healthHandler returns a handler function for the /health endpoint
+func healthHandler(dbService *services.DatabaseService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check database connection
+		dbHealthy := true
+		if err := dbService.Ping(); err != nil {
+			dbHealthy = false
+			logger.Logger.Warn("Database health check failed", zap.Error(err))
+		}
+
+		status := "healthy"
+		statusCode := http.StatusOK
+		if !dbHealthy {
+			status = "unhealthy"
+			statusCode = http.StatusServiceUnavailable
+		}
+
+		response := map[string]interface{}{
+			"status":    status,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"database": map[string]interface{}{
+				"connected": dbHealthy,
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		json.NewEncoder(w).Encode(response)
 	}
 }

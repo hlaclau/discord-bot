@@ -22,8 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bot .
 # Final stage
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install ca-certificates and wget for HTTPS requests and health checks
+RUN apk --no-cache add ca-certificates wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
@@ -42,11 +42,11 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Expose port (if needed for health checks)
-EXPOSE 8080
+EXPOSE 8089
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD pgrep bot || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8089/health || exit 1
 
 # Run the application
 CMD ["./bot"]

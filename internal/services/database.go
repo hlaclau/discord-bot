@@ -151,6 +151,14 @@ func (s *DatabaseService) HasCategory(command string) bool {
 	return count > 0
 }
 
+// Ping checks the database connection
+func (s *DatabaseService) Ping() error {
+	if s.db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+	return s.db.Ping()
+}
+
 // Close closes the database connection
 func (s *DatabaseService) Close() error {
 	if s.db != nil {

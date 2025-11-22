@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"wooper-bot/internal/bot"
-	"wooper-bot/internal/config"
-	"wooper-bot/internal/handlers"
-	"wooper-bot/internal/logger"
-	"wooper-bot/internal/services"
+	"mutsumi-bot/internal/bot"
+	"mutsumi-bot/internal/config"
+	"mutsumi-bot/internal/handlers"
+	"mutsumi-bot/internal/logger"
+	"mutsumi-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
@@ -41,7 +41,7 @@ func main() {
 	}
 	defer logger.Close()
 
-	logger.Logger.Info("Starting wooper-bot")
+	logger.Logger.Info("Starting mutsumi-bot")
 
 	cfg, err := config.Load()
 	if err != nil {

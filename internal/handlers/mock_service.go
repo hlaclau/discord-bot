@@ -1,6 +1,6 @@
 package handlers
 
-import "wooper-bot/internal/services"
+import "mutsumi-bot/internal/services"
 
 // mockContentService is a mock implementation of ContentService for testing
 type mockContentService struct {

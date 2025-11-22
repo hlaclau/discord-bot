@@ -1,4 +1,4 @@
-module wooper-bot
+module mutsumi-bot
 
 go 1.25.1
 

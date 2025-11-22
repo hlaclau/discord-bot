@@ -1,4 +1,4 @@
-# Multi-stage build for wooper-bot
+# Multi-stage build for mutsumi-bot
 FROM golang:1.25.1-alpine AS builder
 
 # Set working directory

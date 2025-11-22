@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"wooper-bot/internal/logger"
+	"mutsumi-bot/internal/logger"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"

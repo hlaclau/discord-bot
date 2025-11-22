@@ -1,4 +1,4 @@
-# Wooper Bot Makefile
+# Mutsumi Bot Makefile
 
 .PHONY: run build test test-unit test-integration fmt clean help docker-build
 
@@ -13,7 +13,7 @@ run: ## Run the bot
 	go run ./...
 
 build: ## Build the binary
-	go build -o wooper-bot .
+	go build -o mutsumi-bot .
 
 test: ## Run all tests (unit + integration)
 	go test ./...
@@ -29,8 +29,8 @@ fmt: ## Format code
 
 clean: ## Clean build artifacts
 	go clean
-	rm -f wooper-bot
+	rm -f mutsumi-bot
 
 # Docker commands
 docker-build: ## Build Docker image
-	docker build -t wooper-bot .
+	docker build -t mutsumi-bot .

@@ -3,7 +3,7 @@ package handlers
 import (
 	"testing"
 
-	"wooper-bot/internal/logger"
+	"mutsumi-bot/internal/logger"
 )
 
 // setupTestHandler creates a message handler with mock content service
@@ -19,7 +19,7 @@ func setupTestHandler(t *testing.T) *MessageHandler {
 
 	// Create mock content service
 	mockService := newMockContentService()
-	mockService.addCommand("wooper", "Wooper content 1", "Wooper content 2")
+	mockService.addCommand("mutsumi", "Mutsumi content 1", "Mutsumi content 2")
 	mockService.addCommand("cats", "Cats content 1", "Cats content 2")
 
 	// Create message handler
@@ -40,8 +40,8 @@ func TestNewMessageHandler(t *testing.T) {
 		return
 	}
 
-	if handler.ImageService != mockService {
-		t.Errorf("Expected content service %v but got %v", mockService, handler.ImageService)
+	if handler.ContentService != mockService {
+		t.Errorf("Expected content service %v but got %v", mockService, handler.ContentService)
 	}
 }
 
@@ -50,19 +50,19 @@ func TestMessageHandler_ContentServiceIntegration(t *testing.T) {
 	handler := setupTestHandler(t)
 
 	// Test that the handler has access to the content service
-	if handler.ImageService == nil {
+	if handler.ContentService == nil {
 		t.Errorf("Expected content service but got nil")
 	}
 
 	// Test that the content service has commands
-	commands := handler.ImageService.GetAvailableCategories()
+	commands := handler.ContentService.GetAvailableCategories()
 	if len(commands) == 0 {
 		t.Errorf("Expected commands but got none")
 	}
 
 	// Test that we can get random content
 	for _, command := range commands {
-		content := handler.ImageService.GetRandomContent(command)
+		content := handler.ContentService.GetRandomContent(command)
 		if content == "" {
 			t.Errorf("Expected content for command %s but got empty", command)
 		}

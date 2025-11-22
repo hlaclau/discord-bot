@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"wooper-bot/internal/logger"
-	"wooper-bot/internal/services"
+	"mutsumi-bot/internal/logger"
+	"mutsumi-bot/internal/services"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// TestIntegration tests the overall flow of the wooper-bot application.
+// TestIntegration tests the overall flow of the mutsumi-bot application.
 func TestIntegration(t *testing.T) {
 	// Skip if running in CI or if database connection is not available
 	dbConn := os.Getenv("DATABASE_CONNECTION")

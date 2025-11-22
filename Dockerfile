@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o wooper-bot .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bot .
 
 # Final stage
 FROM alpine:latest
@@ -33,10 +33,7 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Copy the binary from builder stage
-COPY --from=builder /app/wooper-bot .
-
-# Copy image assets
-COPY --from=builder /app/img ./img
+COPY --from=builder /app/bot .
 
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app
@@ -49,7 +46,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD pgrep wooper-bot || exit 1
+    CMD pgrep bot || exit 1
 
 # Run the application
-CMD ["./wooper-bot"]
+CMD ["./bot"]

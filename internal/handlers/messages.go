@@ -5,19 +5,19 @@ import (
 	"strings"
 	"time"
 
-	"wooper-bot/internal/logger"
-	"wooper-bot/internal/services"
+	"mutsumi-bot/internal/logger"
+	"mutsumi-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
 
 type MessageHandler struct {
-	ImageService services.ContentService
+	ContentService services.ContentService
 }
 
-func NewMessageHandler(imageService services.ContentService) *MessageHandler {
-	return &MessageHandler{ImageService: imageService}
+func NewMessageHandler(contentService services.ContentService) *MessageHandler {
+	return &MessageHandler{ContentService: contentService}
 }
 
 func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -48,10 +48,10 @@ func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 			zap.String("channel_id", m.ChannelID),
 			zap.String("guild_id", m.GuildID))
 
-		if h.ImageService.HasCategory(category) {
+		if h.ContentService.HasCategory(category) {
 			startTime := time.Now()
 
-			content := h.ImageService.GetRandomContent(category)
+			content := h.ContentService.GetRandomContent(category)
 			if content == "" {
 				logger.Logger.Warn("No content available for command",
 					zap.String("command", category),
@@ -84,7 +84,7 @@ func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 				zap.String("user", m.Author.Username),
 				zap.String("user_id", m.Author.ID))
 
-			categories := h.ImageService.GetAvailableCategories()
+			categories := h.ContentService.GetAvailableCategories()
 			if len(categories) == 0 {
 				logger.Logger.Warn("No categories available for help",
 					zap.String("user", m.Author.Username))
@@ -94,7 +94,7 @@ func (h *MessageHandler) OnMessageCreate(s *discordgo.Session, m *discordgo.Mess
 
 			message := "Available commands:\n"
 			for _, cat := range categories {
-				count := h.ImageService.GetContentCount(cat)
+				count := h.ContentService.GetContentCount(cat)
 				message += fmt.Sprintf("• `!%s` (%d entries)\n", cat, count)
 			}
 

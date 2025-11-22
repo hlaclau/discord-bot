@@ -63,10 +63,10 @@ INSERT INTO commands (command, content) VALUES ('cats', 'Meow meow!');
 
 ```sql
 -- Create database (if not exists)
-CREATE DATABASE wooper_bot;
+CREATE DATABASE mutsumi_bot;
 
 -- Connect to the database
-\c wooper_bot
+\c mutsumi_bot
 
 -- The bot will create the table automatically, or you can create it manually:
 CREATE TABLE IF NOT EXISTS commands (
@@ -170,8 +170,8 @@ The bot dynamically discovers commands from the database, so new entries are ava
 
 1. **Clone the repository**
    ```bash
-   git clone git@github.com:hlaclau/wooper-discord-bot.git
-   cd wooper-bot
+   git clone git@github.com:hlaclau/mutsumi-discord-bot.git
+   cd mutsumi-bot
    ```
 
 2. **Install dependencies**
@@ -218,7 +218,7 @@ The bot dynamically discovers commands from the database, so new entries are ava
 ## Project Structure
 
 ```
-wooper-bot/
+mutsumi-bot/
 ├── .env.example          # Environment template
 ├── .env                  # Your environment variables (gitignored)
 ├── go.mod               # Go module file
@@ -243,8 +243,7 @@ wooper-bot/
 │   │   └── logger_test.go
 │   └── services/        # Business logic services
 │       ├── database.go  # PostgreSQL database service
-│       ├── service.go   # Content service interface
-│       └── image.go     # Legacy image service (deprecated)
+│       └── service.go   # Content service interface
 └── tests/               # Test files
     └── integration/     # Integration tests
         └── integration_test.go
@@ -292,7 +291,7 @@ make clean             # Clean build artifacts
 ```bash
 make build
 # or
-go build -o wooper-bot .
+go build -o mutsumi-bot .
 ```
 
 ### Running Tests

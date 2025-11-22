@@ -5,19 +5,19 @@ import (
 	"strings"
 	"time"
 
-	"wooper-bot/internal/logger"
-	"wooper-bot/internal/services"
+	"mutsumi-bot/internal/logger"
+	"mutsumi-bot/internal/services"
 
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )
 
 type InteractionHandler struct {
-	ImageService services.ContentService
+	ContentService services.ContentService
 }
 
-func NewInteractionHandler(imageService services.ContentService) *InteractionHandler {
-	return &InteractionHandler{ImageService: imageService}
+func NewInteractionHandler(contentService services.ContentService) *InteractionHandler {
+	return &InteractionHandler{ContentService: contentService}
 }
 
 func (h *InteractionHandler) OnInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -45,8 +45,8 @@ func (h *InteractionHandler) handleCommand(s *discordgo.Session, i *discordgo.In
 		zap.String("guild_id", i.GuildID))
 
 	// Check if category exists
-	if !h.ImageService.HasCategory(category) {
-		availableCategories := h.ImageService.GetAvailableCategories()
+	if !h.ContentService.HasCategory(category) {
+		availableCategories := h.ContentService.GetAvailableCategories()
 		message := fmt.Sprintf("Category '%s' not found. Available categories: %s",
 			category, strings.Join(availableCategories, ", "))
 
@@ -65,7 +65,7 @@ func (h *InteractionHandler) handleCommand(s *discordgo.Session, i *discordgo.In
 	}
 
 	// Get random content
-	content := h.ImageService.GetRandomContent(category)
+	content := h.ContentService.GetRandomContent(category)
 	if content == "" {
 		logger.Logger.Warn("No content available for command",
 			zap.String("command", category),
